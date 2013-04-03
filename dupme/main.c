@@ -42,22 +42,13 @@ int main(int argc, char* argv[]) {
     char* buffer = malloc(k);
     int result;
 
-    /*
-    while (1) {
-        int cc = read(0, buffer, k);
-        printf("%d\n", cc);
-    }
-    return 0;
-    */
     int len = 0;
     int count;
     int eof_found = 0;
     while (1) {
         // invariant: buffer contains "len" start chars of new (and maybe next) strings
 
-        //printf("eof_found = %d\n", eof_found);
         // work with buffer[0..len - 1]
-        
         int ind_endl = find_char(buffer, len, '\n');
         if (ind_endl != -1) { // buffer[0..len - 1] contain endl
             write_string(buffer, ind_endl);
@@ -72,29 +63,24 @@ int main(int argc, char* argv[]) {
         } else // buffer[0..len - 1] don't contain endl
         {
             if (eof_found && len > 0) {
-               // printf("%d\n", len);
                 write_string(buffer, len);
                 write_string(buffer, len);
                 break;
             }
             if (k == len) {
                 // skip tail
-                //printf("skip tail\n");
                 len = 0;
                 while (1) {
                     count = read(0, buffer + len, k - len);
-                    //printf("count = %d\n", count);
                     if (k != len && count == 0) { // EOF
                         eof_found = 1;
                         break;
                     }
                     len += count;
                     ind_endl = find_char(buffer, len, '\n');
-                    //printf("ind_endl = %d\n", ind_endl);
                     if (ind_endl != -1) {
                         memmove(buffer, buffer + ind_endl + 1, len - ind_endl - 1);
                         len = len - ind_endl - 1;
-                        //printf("break\n");
                         break;
                     }
                 }
@@ -105,7 +91,6 @@ int main(int argc, char* argv[]) {
             break;
         }
         count = read(0, buffer + len, k - len);
-        //printf("count = %d\n", count);
         if (k != len && count == 0) { // EOF
             eof_found = 1;
         }
