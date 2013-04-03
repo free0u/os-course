@@ -30,9 +30,10 @@ int find_char(char* s, int len, char c) {
     return -1;
 }
 
-void double_write_string(char* s, int len) {
-    write(1, s, len); printf("\n");
-    write(1, s, len); printf("\n");
+void write_string(char* s, int len) {
+    write(1, s, len);
+    char endl = '\n';
+    write(1, &endl, 1);
 }
         
 int main(int argc, char* argv[]) {
@@ -56,13 +57,11 @@ int main(int argc, char* argv[]) {
 
         //printf("eof_found = %d\n", eof_found);
         // work with buffer[0..len - 1]
-        if (eof_found) {
-            double_write_string(buffer, len);
-            break;
-        }
+        
         int ind_endl = find_char(buffer, len, '\n');
         if (ind_endl != -1) { // buffer[0..len - 1] contain endl
-            double_write_string(buffer, ind_endl);
+            write_string(buffer, ind_endl);
+            write_string(buffer, ind_endl);
             if (ind_endl < len - 1) { // copy tail to begin (without endl)
                 memmove(buffer, buffer + ind_endl + 1, len - ind_endl - 1);
                 len = len - ind_endl - 1;
@@ -72,6 +71,12 @@ int main(int argc, char* argv[]) {
             }
         } else // buffer[0..len - 1] don't contain endl
         {
+            if (eof_found && len > 0) {
+               // printf("%d\n", len);
+                write_string(buffer, len);
+                write_string(buffer, len);
+                break;
+            }
             if (k == len) {
                 // skip tail
                 //printf("skip tail\n");
@@ -80,6 +85,7 @@ int main(int argc, char* argv[]) {
                     count = read(0, buffer + len, k - len);
                     //printf("count = %d\n", count);
                     if (k != len && count == 0) { // EOF
+                        eof_found = 1;
                         break;
                     }
                     len += count;
