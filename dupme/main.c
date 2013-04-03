@@ -21,10 +21,11 @@ int parse_int(char* s) {
     return result;
 }
 
-int find_char(char* s, char c) {
+int find_char(char* s, int len, char c) {
     int i = 0;
-    while (s[i] != 0) {
+    while (i < len && s[i] != 0) {
         if (s[i] == c) return i;
+        ++i;
     }
     return -1;
 }
@@ -47,7 +48,7 @@ int main(int argc, char* argv[]) {
     while (1) {
         // invariant: buffer contains "len" start chars of new (and maybe next) strings
 
-        int ind_endl = find_char(buffer, '\n');
+        int ind_endl = find_char(buffer, len, '\n');
         if (ind_endl != -1) { // buffer contain endl
             write(1, buffer, ind_endl); printf("\n");
             write(1, buffer, ind_endl); printf("\n");
