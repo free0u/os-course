@@ -21,6 +21,14 @@ int parse_int(char* s) {
     return result;
 }
 
+int find_char(char* s, char c) {
+    int i = 0;
+    while (s[i] != 0) {
+        if (s[i] == c) return i;
+    }
+    return -1;
+}
+        
 int main(int argc, char* argv[]) {
     int k = parse_int(argv[1]) + 1;
 
@@ -35,33 +43,26 @@ int main(int argc, char* argv[]) {
     return 0;
     */
     int len = 0;
+    int count;
     while (1) {
-        // invariant: buffer contains "len" chars of new (and maybe next) strings
-        if (len == k) { // buffer is full
-            int ind_endl = -1;
-            int i;
-            for (i = 0; i < len; ++i) {
-                if (buffer[i] == '\n') {
-                    ind_endl = i;
-                    break;
-                }
-            }
-            if (ind_endl != -1) { // buffer contain endl
-                write(1, buffer, ind_endl); printf("\n");
-                write(1, buffer, ind_endl); printf("\n");
-                if (ind_endl < len - 1) { // copy tail to begin (without endl)
-                    memmove(buffer, buffer + ind_endl + 1, len - ind_endl - 1);
-                    len = len - ind_endl - 1;
-                } else 
-                {
-                    len = 0;
-                }
+        // invariant: buffer contains "len" start chars of new (and maybe next) strings
+
+        int ind_endl = find_char(buffer, '\n');
+        if (ind_endl != -1) { // buffer contain endl
+            write(1, buffer, ind_endl); printf("\n");
+            write(1, buffer, ind_endl); printf("\n");
+            if (ind_endl < len - 1) { // copy tail to begin (without endl)
+                memmove(buffer, buffer + ind_endl + 1, len - ind_endl - 1);
+                len = len - ind_endl - 1;
             } else 
             {
+                len = 0;
             }
+        } else // buffer don't contain endl => we should skip tail
+        {
         }
-        int count = read(0, buffer + len, k - len);
-        printf("%d\n", count);
+
+        count = read(0, buffer + len, k - len);
         len += count;
     }
 
