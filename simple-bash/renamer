@@ -1,3 +1,10 @@
 #!/bin/bash
 
-echo hi
+for file_name in "$@"; do
+    if [ -f "$file_name" ]; then
+        echo "+ $file_name"
+    else
+        echo "- $file_name"
+    fi
+done
+
