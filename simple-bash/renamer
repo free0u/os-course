@@ -1,10 +1,10 @@
 #!/bin/bash
 
 for file_name in "$@"; do
-    if [ -f "$file_name" ]; then
+    if [ -f "$file_name" ]; then # if file exists
         echo -n "New name for \"$file_name\" (empty - don't rename): "
         read -e new_file_name
-        if [ -n "$new_file_name" ]; then
+        if [ -n "$new_file_name" ]; then # if new_file_name isn't empty
             mv "$file_name" "$new_file_name"
         fi
     fi
