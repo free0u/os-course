@@ -1,3 +1,20 @@
 #!/bin/bash
 
-echo hi
+sleep_interval=$1
+shift 1
+
+state1="`$@`"
+
+while true; do
+    sleep $sleep_interval
+    clear
+
+    echo "$state1"
+    state2="`$@`"
+
+    out="`diff -u <(echo "$state1") <(echo "$state2")`"
+    echo "Unified diff"
+    echo "$out"
+
+    state1="$state2"
+done
