@@ -25,7 +25,7 @@ int parse_int(char* s) {
 
 int find_char(char* s, int len, char c) {
     int i = 0;
-    while (i < len && s[i] != 0) {
+    while (i < len) {
         if (s[i] == c) return i;
         ++i;
     }
