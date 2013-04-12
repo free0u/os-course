@@ -1,0 +1,21 @@
+#!/bin/bash
+
+dir=$1
+start_time=$2
+end_time=$3
+
+script="#!/bin/bash
+
+time0=\`stat -c %Z "\$1"\`
+time1=\`date +%s\`
+(( diff=(time1-time0)/60/60/24 ))
+
+if [[ (\$diff -lt $start_time) || (\$diff -gt $end_time) ]]; then
+    exit 1
+fi
+exit 0"
+
+echo "$script" > test_date
+chmod +rx test_date
+
+find $dir -print0 | ./filter -z ./test_date
