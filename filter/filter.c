@@ -54,6 +54,16 @@ int get_status(char* argv[])
     return WEXITSTATUS(status);
 }
 
+void out_c(char* arr[])
+{
+    int i = 0;
+    while (arr[i])
+    {
+        printf("arr[%d] = %s\n", i, arr[i]);
+        i++;
+    }
+}
+
 int main(int argc, char* argv[]) {
     int k = 4 * 1024;
     char delim = '\n';
@@ -77,18 +87,17 @@ int main(int argc, char* argv[]) {
     int len_cmd = argc - optind + 1;
 
     char ** cmds;
-    cmds = malloc(len_cmd * sizeof(char*));
+    cmds = malloc((len_cmd + 1) * sizeof(char*));
     int i = 0;
     for (i = 0; i < len_cmd; ++i)
     {
         cmds[i] = argv[i + optind];
     } 
-    cmds[len_cmd - 1] = NULL;
-    printf("%d\n", get_status(cmds));
-    return 0;
-    
+    cmds[len_cmd] = NULL;
 
-    char* buffer = malloc(k + 1);
+    k++;
+    char* buffer = malloc(k);
+    char* buffer2 = malloc(k);
     int result;
 
     int len = 0;
@@ -96,12 +105,13 @@ int main(int argc, char* argv[]) {
     int eof_found = 0;
     while (1) {
         // invariant: buffer contains "len" start chars of new (and maybe next) strings
-
         // work with buffer[0..len - 1]
+
         int ind_endl = find_char(buffer, len, delim);
+        //printf("%d\n", ind_endl);
         if (ind_endl != -1) { // buffer[0..len - 1] contain endl
             write_string(buffer, ind_endl);
-            write_string(buffer, ind_endl);
+
             if (ind_endl < len - 1) { // copy tail to begin (without endl)
                 memmove(buffer, buffer + ind_endl + 1, len - ind_endl - 1);
                 len = len - ind_endl - 1;
@@ -111,42 +121,28 @@ int main(int argc, char* argv[]) {
             }
         } else // buffer[0..len - 1] don't contain endl
         {
-            if (eof_found && len > 0) {
-                write_string(buffer, len);
-                write_string(buffer, len);
+            if (eof_found) {
+                if (len > 0) {
+                    write_string(buffer, len);
+                }
                 break;
             }
             if (k == len) {
                 // skip tail
-                len = 0;
-                while (1) {
-                    count = read(0, buffer + len, k - len);
-                    if (k != len && count == 0) { // EOF
-                        eof_found = 1;
-                        break;
-                    }
-                    len += count;
-                    ind_endl = find_char(buffer, len, delim);
-                    if (ind_endl != -1) {
-                        memmove(buffer, buffer + ind_endl + 1, len - ind_endl - 1);
-                        len = len - ind_endl - 1;
-                        break;
-                    }
-                }
+                printf("crash\n");
+                break;
             }
         }
 
-        if (eof_found) {
-            break;
-        }
         count = read(0, buffer + len, k - len);
-        if (k != len && count == 0) { // EOF
+        if (k - len > 0 && count == 0) { // EOF
             eof_found = 1;
         }
         len += count;
     }
 
     free(buffer);
+    free(buffer2);
     free(cmds); 
 
     return 0;
