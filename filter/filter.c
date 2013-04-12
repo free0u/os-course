@@ -88,12 +88,13 @@ int main(int argc, char* argv[]) {
 
     char ** cmds;
     cmds = malloc((len_cmd + 1) * sizeof(char*));
+    cmds[len_cmd] = NULL;
+
     int i = 0;
     for (i = 0; i < len_cmd; ++i)
     {
         cmds[i] = argv[i + optind];
     } 
-    cmds[len_cmd] = NULL;
 
     k++;
     char* buffer = malloc(k);
@@ -104,13 +105,24 @@ int main(int argc, char* argv[]) {
     int count;
     int eof_found = 0;
     while (1) {
+        count = read(0, buffer + len, k - len);
+        if (k - len > 0 && count == 0) { // EOF
+            eof_found = 1;
+        }
+        len += count;
         // invariant: buffer contains "len" start chars of new (and maybe next) strings
         // work with buffer[0..len - 1]
 
         int ind_endl = find_char(buffer, len, delim);
-        //printf("%d\n", ind_endl);
         if (ind_endl != -1) { // buffer[0..len - 1] contain endl
-            write_string(buffer, ind_endl);
+            char char_save = buffer[ind_endl];
+            buffer[ind_endl] = '\0';
+
+            cmds[len_cmd - 1] = buffer;
+            if (!get_status(cmds)) {
+                write_string(buffer, ind_endl);
+            }
+            buffer[ind_endl] = char_save;
 
             if (ind_endl < len - 1) { // copy tail to begin (without endl)
                 memmove(buffer, buffer + ind_endl + 1, len - ind_endl - 1);
@@ -123,22 +135,24 @@ int main(int argc, char* argv[]) {
         {
             if (eof_found) {
                 if (len > 0) {
-                    write_string(buffer, len);
+                    char char_save = buffer[ind_endl];
+                    buffer[ind_endl] = '\0';
+
+                    cmds[len_cmd - 1] = buffer;
+                    if (!get_status(cmds)) {
+                        write_string(buffer, len);
+                    }
+                    buffer[ind_endl] = char_save;
+
                 }
                 break;
             }
             if (k == len) {
-                // skip tail
+                // crash
                 printf("crash\n");
                 break;
             }
         }
-
-        count = read(0, buffer + len, k - len);
-        if (k - len > 0 && count == 0) { // EOF
-            eof_found = 1;
-        }
-        len += count;
     }
 
     free(buffer);
