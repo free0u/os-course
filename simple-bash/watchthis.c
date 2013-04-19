@@ -7,41 +7,6 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 
-int find_char(char* s, int len, char c) {
-    int i = 0;
-    while (i < len) {
-        if (s[i] == c) return i;
-        ++i;
-    }
-    return -1;
-}
-
-void write_string(char* s, int len) {
-    write(1, s, len);
-    char endl = '\n';
-    write(1, &endl, 1);
-}
-
-
-int get_status(char* argv[])
-{
-    int pid = fork();
-    if (pid == 0)
-    {
-        execvp(argv[0], argv);
-        exit(255);
-    }
-
-    int status = 0;
-    waitpid(pid, &status, 0);
-    
-    if (WIFEXITED(status)) {
-        if (WEXITSTATUS(status)) {
-            return 1;
-        }
-    }
-    return 0;
-}
 char *name_files[] = {"/tmp/out1.txt", "/tmp/out2.txt"};
 char *buffer;
 
