@@ -43,29 +43,60 @@ int get_status(char* argv[])
     return 0;
 }
 char *name_files[] = {"/tmp/out1.txt", "/tmp/out2.txt"};
+char *buffer;
 
+void write_to_descr(char * buf, int len, int file)
+{
+    int pos = 0;
+    while (len > 0)
+    {
+        int count = write(file, buf + pos, len);
+        if (count < 0)
+        {
+            exit(255);
+        }
+        pos += count;
+        len -= count;
+    }
+}
 void run_cmd(char* argv[], int pos)
 {
-    int save_stdout = dup(1);
-
+    int fds[2];
+    pipe(fds);
     int pid = fork();
     if (pid == 0) // child
     {
-        int p = open(name_files[pos], O_CREAT | O_WRONLY | O_TRUNC, S_IREAD | S_IWRITE);
-        dup2(p, 1);
-        close(p); 
-       
+        dup2(fds[1], 1);
+        close(fds[0]);
+        close(fds[1]);
+               
         execvp(argv[0], argv);
         exit(255);
     }
+
+    int count, len;
+    len = 0;
+    close(fds[1]);
+    while (1)
+    {
+        count = read(fds[0], buffer + len, 4096 - len);
+        if (4096 - len != 0 && count == 0) break; // eof
+        if (4096 - len == 0) break; // buffer is full
+        len += count;
+    }
+    write_to_descr(buffer, len, 1);
+
+    int p = open(name_files[pos], O_CREAT | O_WRONLY | O_TRUNC, S_IREAD | S_IWRITE);
+    write_to_descr(buffer, len, p);
+
     int status;
     waitpid(pid, &status, 0);
-    dup2(save_stdout, 1);
-    close(save_stdout);
 }
 
 int main(int argc, char* argv[]) 
 {
+    buffer = malloc(4096);
+
     int interval = atoi(argv[1]);
 
     char ** cmds;
@@ -88,7 +119,9 @@ int main(int argc, char* argv[])
         }
         waitpid(pid, NULL, 0);
 
+        run_cmd(cmds, state);
         
+        write(1, "\nDiff:\n\n", 8);
         pid = fork();
         if (!pid)
         {
@@ -96,13 +129,12 @@ int main(int argc, char* argv[])
         }
         waitpid(pid, NULL, 0);
 
-        run_cmd(cmds, state);
         state = !state;
-        printf("%d\n", state);
         sleep(1);
     }
 
     free(cmds);
+    free(buffer);
     return 0;
 }
 
