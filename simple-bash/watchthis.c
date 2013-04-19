@@ -42,19 +42,26 @@ int get_status(char* argv[])
     }
     return 0;
 }
+char *name_files[] = {"/tmp/out1.txt", "/tmp/out2.txt"};
 
-void run_cmd(char* argv[])
+void run_cmd(char* argv[], int pos)
 {
+    int save_stdout = dup(1);
+
     int pid = fork();
     if (pid == 0) // child
     {
-        //int p = open("out.txt", O_CREAT | O_WRONLY | O_TRUNC, S_IREAD | S_IWRITE);
+        int p = open(name_files[pos], O_CREAT | O_WRONLY | O_TRUNC, S_IREAD | S_IWRITE);
+        dup2(p, 1);
+        close(p); 
        
         execvp(argv[0], argv);
         exit(255);
     }
     int status;
     waitpid(pid, &status, 0);
+    dup2(save_stdout, 1);
+    close(save_stdout);
 }
 
 int main(int argc, char* argv[]) 
@@ -71,6 +78,7 @@ int main(int argc, char* argv[])
     }
     cmds[argc - 2] = NULL;
 
+    int state = 0;
     while (1)
     {
         int pid = fork();
@@ -79,7 +87,18 @@ int main(int argc, char* argv[])
             execlp("clear", "clear", NULL);
         }
         waitpid(pid, NULL, 0);
-        run_cmd(cmds);
+
+        
+        pid = fork();
+        if (!pid)
+        {
+            execlp("diff", "diff", "-u", name_files[0], name_files[1], NULL);
+        }
+        waitpid(pid, NULL, 0);
+
+        run_cmd(cmds, state);
+        state = !state;
+        printf("%d\n", state);
         sleep(1);
     }
 
