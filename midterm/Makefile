@@ -1,2 +1,2 @@
 midterm: midterm.c
-	gcc midterm.c -o midterm
+	g++ midterm.c -o midterm
