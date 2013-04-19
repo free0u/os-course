@@ -4,12 +4,59 @@
 #include <memory.h>
 #include <vector>
 #include <stdlib.h>
+#include <wait.h>
 
 char* buffer;
 char* delim1;
 char* delim2;
 
-void reverse(char* line, int len)
+int get_status(char* argv[])
+{
+    int pid = fork();
+    if (pid == 0)
+    {
+        execvp(argv[0], argv);
+        exit(255);
+    }
+
+    int status = 0;
+    waitpid(pid, &status, 0);
+    
+    if (WIFEXITED(status)) {
+        if (WEXITSTATUS(status)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+struct my_string
+{
+    char* s;
+    int len;
+    my_string(my_string const& o)
+    {
+        len = o.len;
+        s = (char*)malloc(len + 1);
+        memmove(s, o.s, len + 1);
+    }
+    my_string(char* buf, int _len)
+    {
+        len = _len;
+        s = (char*)malloc(len + 1);
+        memmove(s, buf, len);
+        s[len] = '\0';
+    }
+    ~my_string()
+    {
+        if (s)
+        {
+            free(s);
+        }
+    }
+};
+
+void reverse(char* line, int len, int argc, char* argv[])
 {
     std::vector<int> inds;
     int pos = 0;
@@ -27,14 +74,58 @@ void reverse(char* line, int len)
        }
     }
 
-    for (int i = inds.size() - 1; i >= 0; --i)
+    std::vector<my_string> fields;
+
+    fields.push_back(my_string(buffer, inds.empty() ? len : inds[0]));
+    for (int i = 0; i < inds.size(); i++)
     {
         int next_end = (i == inds.size() - 1 ? len : inds[i + 1]);
-        int local_len = next_end - inds[i] - strlen(delim2); 
-        write(1, buffer + inds[i] + strlen(delim2), local_len);
-        write(1, delim2, strlen(delim2));
+        int local_len = next_end - inds[i] - strlen(delim2);
+        fields.push_back(my_string(buffer + inds[i] + strlen(delim2), local_len) );
     }
-    write(1, buffer, inds.empty() ? len : inds[0]);
+
+    char ** cmds;
+    int len_cmd = argc - 3;
+    len_cmd += fields.size();
+    
+    cmds = (char**)malloc((len_cmd + 1) * sizeof(char*) ); 
+    cmds[len_cmd] = NULL;
+    for (int i = 3; i < argc; i++)
+    {
+        cmds[i - 3] = argv[i];
+    }
+
+    int st = argc - 3;
+    for (int i = 0; i < fields.size(); i++)
+    {
+        cmds[st + i] = fields[i].s;
+    }
+    int status = get_status(cmds);
+
+    if (status)
+    {
+        write(1, buffer, inds.empty() ? len : inds[0]);
+        for (int i = 0; i < inds.size(); i++)
+        {
+            int next_end = (i == inds.size() - 1 ? len : inds[i + 1]);
+            int local_len = next_end - inds[i] - strlen(delim2);
+            write(1, delim2, strlen(delim2));
+            write(1, buffer + inds[i] + strlen(delim2), local_len);
+        }
+
+    } else
+    {
+        for (int i = inds.size() - 1; i >= 0; --i)
+        {
+            int next_end = (i == inds.size() - 1 ? len : inds[i + 1]);
+            int local_len = next_end - inds[i] - strlen(delim2); 
+            write(1, buffer + inds[i] + strlen(delim2), local_len);
+            write(1, delim2, strlen(delim2) );
+        }
+        write(1, buffer, inds.empty() ? len : inds[0]);
+   }
+
+    free(cmds);
 }
 
 int main(int argc, char* argv[])
@@ -61,13 +152,12 @@ int main(int argc, char* argv[])
         if (ind) // delim1 found
         {
             int pos = ind - buffer;
-            //write(1, buffer, pos); 
             char backup = buffer[pos];
             buffer[pos] = '\0';
-            reverse(buffer, pos);
+            reverse(buffer, pos, argc, argv);
             buffer[pos] = backup;
 
-            write(1, delim1, strlen(delim1));
+            write(1, delim1, strlen(delim1) );
 
             memmove(buffer, buffer + pos + strlen(delim1), len - strlen(delim1) - pos);
             len = len - strlen(delim1) - pos;
@@ -78,9 +168,8 @@ int main(int argc, char* argv[])
             {
                 if (len > 0)
                 { 
-                    //write(1, buffer, len);
                     buffer[len] = '\0';
-                    reverse(buffer, len);
+                    reverse(buffer, len, argc, argv);
                 }
                 break;
             }
