@@ -1,0 +1,14 @@
+#!/bin/bash
+
+delim1=$1
+delim2=$2
+
+for file in "./tests"/*; do
+    ext="${file##*.}"
+    name="${file%.*}"
+   
+    if [ "$ext" == "in" ]; then
+        cat "$file" | ./midterm "$1" "$2" > "tmp.txt"
+        diff -u "$name.out" "tmp.txt"
+    fi 
+done

@@ -1,0 +1,50 @@
+#!/bin/bash
+
+function rand_str() {
+    local len;
+    if [ $1 ]; then
+        len=$1
+    else
+        len=4
+    fi
+    echo $(tr -dc "[:alpha:]" < /dev/urandom | head -c $len)
+}
+
+file_name=$1
+delim1=$2
+delim2=$3
+
+min_lines=1
+max_lines=5
+d_lines=$(( $max_lines-$min_lines + 1))
+
+min_words=1
+max_words=7
+d_words=$(( $max_words-$min_words + 1))
+
+cnt_lines=$(( $min_lines + $RANDOM % $d_lines))
+
+echo -n > ./tests/$file_name.in
+echo -n > ./tests/$file_name.out
+
+for i in $(seq $cnt_lines); do
+    cnt_words=$(( $min_words + $RANDOM % $d_words ))
+
+    len_word=$(( $RANDOM % 4 + 1))
+    rand_word=`rand_str $len_word`
+    str1=$rand_word
+    str2=$str1
+
+    for j in $(seq $cnt_words); do
+        len_word=$(( $RANDOM % 4 + 1))
+        rand_word=`rand_str $len_word`
+
+        str1=$str1$delim2$rand_word
+        str2=$rand_word$delim2$str2
+    done
+    str1=$str1$delim1
+    str2=$str2$delim1
+    
+    echo -n "$str1" >> ./tests/$file_name.in
+    echo -n "$str2" >> ./tests/$file_name.out
+done
