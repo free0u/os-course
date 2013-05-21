@@ -3,24 +3,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-//int _strlen(char* s) {
-//    int i = 0;
-//    while (s[i] != 0) {
-//        ++i;
-//    }
-//    return i;
-//}
-
-int parse_int(char* s) {
-    int result = 0;
-    int i = 0;
-    while (s[i] != 0) {
-        result = result * 10 + (s[i] - '0');
-        ++i;
-    }
-    return result;
-}
-
 int find_char(char* s, int len, char c) {
     int i = 0;
     while (i < len && s[i] != 0) {
@@ -46,7 +28,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    int k = parse_int(argv[1]) + 1;
+    int k = atoi(argv[1]) + 1;
 
     char* buffer = malloc(k);
 
