@@ -9,7 +9,9 @@
 
 #define BUFFER_SIZE 4096
 
-char *name_files[] = {"/tmp/out1.txt", "/tmp/out2.txt"};
+char* file1 = "/tmp/out1.txt";
+char* file2 = "/tmp/out2.txt";
+
 char *buffer;
 
 int check(const char * comment, int what)
@@ -32,7 +34,7 @@ void write_to_descr(char * buf, int len, int file)
     }
 }
 
-void run_cmd(char* argv[], int pos)
+void run_cmd(char* argv[])
 {
     int fds[2];
     pipe(fds);
@@ -61,7 +63,7 @@ void run_cmd(char* argv[], int pos)
     }
     write_to_descr(buffer, len, 1);
 
-    int p = open(name_files[pos], O_CREAT | O_WRONLY | O_TRUNC, S_IREAD | S_IWRITE);
+    int p = open(file1, O_CREAT | O_WRONLY | O_TRUNC, S_IREAD | S_IWRITE);
     write_to_descr(buffer, len, p);
 
     int status;
@@ -90,7 +92,6 @@ int main(int argc, char* argv[])
     }
     cmds[argc - 2] = NULL;
 
-    int state = 0;
     while (1)
     {
         int pid = fork();
@@ -100,17 +101,20 @@ int main(int argc, char* argv[])
         }
         waitpid(pid, NULL, 0);
 
-        run_cmd(cmds, state);
+        run_cmd(cmds);
         
         write(1, "\nDiff:\n\n", 8);
         pid = fork();
         if (!pid)
         {
-            execlp("diff", "diff", "-u", name_files[0], name_files[1], NULL);
+            execlp("diff", "diff", "-u", file1, file2, NULL);
         }
         waitpid(pid, NULL, 0);
 
-        state = !state;
+        char* tmp = file1;
+        file1 = file2;
+        file2 = tmp;
+        
         sleep(interval);
     }
 
