@@ -3,13 +3,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-int _strlen(char* s) {
-    int i = 0;
-    while (s[i] != 0) {
-        ++i;
-    }
-    return i;
-}
+//int _strlen(char* s) {
+//    int i = 0;
+//    while (s[i] != 0) {
+//        ++i;
+//    }
+//    return i;
+//}
 
 int parse_int(char* s) {
     int result = 0;
@@ -37,10 +37,16 @@ void write_string(char* s, int len) {
 }
         
 int main(int argc, char* argv[]) {
+    if (argc < 2)
+    {
+        char* message = "Usage: echo input | ./main <buffer size>\n";
+        write(1, message, strlen(message));
+        return 0;
+    }
+
     int k = parse_int(argv[1]) + 1;
 
     char* buffer = malloc(k);
-    int result;
 
     int len = 0;
     int count;
