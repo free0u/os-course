@@ -30,9 +30,11 @@ int find_char(char* s, int len, char c) {
     return -1;
 }
 
-void write_string(char* s, int len) {
-    write(1, s, len);
+void write_string_twice(char* s, int len) {
     char endl = '\n';
+    write(1, s, len);
+    write(1, &endl, 1);
+    write(1, s, len);
     write(1, &endl, 1);
 }
         
@@ -50,15 +52,14 @@ int main(int argc, char* argv[]) {
 
     int len = 0;
     int count;
-    int eof_found = 0;
+    int eof_flag = 0;
     while (1) {
         // invariant: buffer contains "len" start chars of new (and maybe next) strings
 
         // work with buffer[0..len - 1]
         int ind_endl = find_char(buffer, len, '\n');
         if (ind_endl != -1) { // buffer[0..len - 1] contain endl
-            write_string(buffer, ind_endl);
-            write_string(buffer, ind_endl);
+            write_string_twice(buffer, ind_endl);
             if (ind_endl < len - 1) { // copy tail to begin (without endl)
                 memmove(buffer, buffer + ind_endl + 1, len - ind_endl - 1);
                 len = len - ind_endl - 1;
@@ -68,9 +69,8 @@ int main(int argc, char* argv[]) {
             }
         } else // buffer[0..len - 1] don't contain endl
         {
-            if (eof_found && len > 0) {
-                write_string(buffer, len);
-                write_string(buffer, len);
+            if (eof_flag && len > 0) {
+                write_string_twice(buffer, len);
                 break;
             }
             if (k == len) {
@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
                 while (1) {
                     count = read(0, buffer + len, k - len);
                     if (k != len && count == 0) { // EOF
-                        eof_found = 1;
+                        eof_flag = 1;
                         break;
                     }
                     len += count;
@@ -93,12 +93,12 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        if (eof_found) {
+        if (eof_flag) {
             break;
         }
         count = read(0, buffer + len, k - len);
         if (k != len && count == 0) { // EOF
-            eof_found = 1;
+            eof_flag = 1;
         }
         len += count;
     }
