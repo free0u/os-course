@@ -26,11 +26,9 @@ int check(const char * comment, int what)
 void write_to_descr(char * buf, int len, int file)
 {
     int pos = 0;
-    while (len > 0)
+    while (pos < len)
     {
-        int count = check("write failed", write(file, buf + pos, len));
-        pos += count;
-        len -= count;
+        pos += check("write failed", write(file, buf + pos, len - pos));
     }
 }
 
@@ -107,7 +105,7 @@ int main(int argc, char* argv[])
         pid = fork();
         if (!pid)
         {
-            execlp("diff", "diff", "-u", file1, file2, NULL);
+            execlp("diff", "diff", "-u", file2, file1, NULL);
         }
         waitpid(pid, NULL, 0);
 
