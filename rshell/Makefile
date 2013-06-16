@@ -1,4 +1,4 @@
 all: rshell
 
 rshell: rshell.c
-	g++ -Wall -Wextra -Werror -lutil rshell.c -o rshell
+	g++ -Wall -Wextra -Werror rshell.c -lutil -o rshell
