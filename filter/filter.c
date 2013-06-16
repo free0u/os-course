@@ -5,21 +5,39 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-int find_char(char* s, int len, char c) {
-    int i = 0;
-    while (i < len) {
+#define BUFFER_SIZE 4096
+
+int check(const char * message, int what)
+{
+    if (what < 0) 
+    {
+        perror(message);
+        _exit(1);
+    }
+    return what;
+}
+
+void* check_malloc(const char * message, int k)
+{
+    void* p = malloc(k);
+    if (p == NULL)
+    {
+        write(1, message, strlen(message));
+        exit(1);
+    }
+    return p;
+}
+
+int find_char(char* s, int from, int to, char c)
+{
+    int i = from;
+    while (i < to)
+    {
         if (s[i] == c) return i;
         ++i;
     }
     return -1;
 }
-
-void write_string(char* s, int len) {
-    write(1, s, len);
-    char endl = '\n';
-    write(1, &endl, 1);
-}
-
 
 int get_status(char* argv[])
 {
@@ -41,8 +59,21 @@ int get_status(char* argv[])
     return 0;
 }
 
+void write_string(char* s, int len)
+{
+    int pos = 0;
+    while (pos < len)
+    {
+        pos += check("write", write(1, s + pos, len - pos));
+    }
+    char endl = '\n';
+    write(1, &endl, 1);
+}
+        
+enum state {READ, SKIP};
+
 int main(int argc, char* argv[]) {
-    int k = 4 * 1024;
+    int k = BUFFER_SIZE;
     char delim = '\n';
 
     int res_opt;
@@ -64,7 +95,7 @@ int main(int argc, char* argv[]) {
     int len_cmd = argc - optind + 1;
 
     char ** cmds;
-    cmds = malloc((len_cmd + 1) * sizeof(char*));
+    cmds = check_malloc("malloc error\n", (len_cmd + 1) * sizeof(char*));
     cmds[len_cmd] = NULL;
 
     int i = 0;
@@ -73,66 +104,73 @@ int main(int argc, char* argv[]) {
         cmds[i] = argv[i + optind];
     } 
 
-    k++;
-    char* buffer = malloc(k);
-    char* buffer2 = malloc(k);
-    int result;
+    char* buffer = check_malloc("malloc error\n", k + 1);
 
     int len = 0;
-    int count;
     int eof_found = 0;
-    while (1) {
-        count = read(0, buffer + len, k - len);
-        if (k - len > 0 && count == 0) { // EOF
-            eof_found = 1;
-        }
-        len += count;
-        // invariant: buffer contains "len" start chars of new (and maybe next) strings
-        // work with buffer[0..len - 1]
+    enum state st = READ;
+    while (!eof_found)
+    {
+        int cnt = check("read", read(0, buffer + len, k - len));
+        if (cnt == 0)
+           eof_found = 1;
+        len += cnt;
 
-        int ind_endl = find_char(buffer, len, delim);
-        if (ind_endl != -1) { // buffer[0..len - 1] contain endl
-            char char_save = buffer[ind_endl];
-            buffer[ind_endl] = '\0';
-
-            cmds[len_cmd - 1] = buffer;
-            if (!get_status(cmds)) {
-                write_string(buffer, ind_endl);
-            }
-            buffer[ind_endl] = char_save;
-            
-            if (ind_endl < len - 1) { // copy tail to begin (without endl)
-                memmove(buffer, buffer + ind_endl + 1, len - ind_endl - 1);
-                len = len - ind_endl - 1;
-            } else 
+        if (st == SKIP)
+        {
+            int pos = find_char(buffer, 0, len, delim); 
+            if (pos == -1)
             {
                 len = 0;
+                continue;
             }
-        } else // buffer[0..len - 1] don't contain endl
-        {
-            if (eof_found) {
-                if (len > 0) {
-                    char char_save = buffer[ind_endl];
-                    buffer[ind_endl] = '\0';
+            ++pos;
+            memmove(buffer, buffer + pos, len - pos);
+            len -= pos;
+            st = READ;
+        }
 
-                    cmds[len_cmd - 1] = buffer;
-                    if (!get_status(cmds)) {
-                        write_string(buffer, len);
-                    }
-                    buffer[ind_endl] = char_save;
+        if (st == READ) {
+            int pos_l = 0;
+            int pos_r = find_char(buffer, pos_l, len, delim);
+            while (pos_r != -1)
+            {
+                char save = buffer[pos_r - pos_l];
+                buffer[pos_r - pos_l] = 0;
+
+                cmds[len_cmd - 1] = buffer + pos_l;
+                if (!get_status(cmds))
+                {
+                    write_string(buffer + pos_l, pos_r - pos_l);
                 }
-                break;
+                buffer[pos_r - pos_l] = save;
+
+                pos_l = pos_r + 1;
+                pos_r = find_char(buffer, pos_l, len, delim);
             }
-            if (k == len) {
-                // crash
-                return 1;
-                break;
+    
+            memmove(buffer, buffer + pos_l, len - pos_l);
+            len -= pos_l;
+    
+            if (len == k) 
+            {
+                st = SKIP;
+                len = 0;
+            }
+    
+            if (eof_found && len > 0)
+            {
+                buffer[len] = 0;
+                cmds[len_cmd - 1] = buffer;
+                if (!get_status(cmds))
+                {
+                    write_string(buffer, len);
+                }
             }
         }
     }
-
+    
     free(buffer);
-    free(buffer2);
     free(cmds); 
 
     return 0;
