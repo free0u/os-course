@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
     while (!eof_found)
     {
         int cnt = check("read", read(0, buffer + len, k - len));
-        if (k - len != 0 && cnt == 0)
+        if (cnt == 0)
            eof_found = 1;
         len += cnt;
 
