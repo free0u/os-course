@@ -13,6 +13,17 @@ int check(const char * message, int what)
     return what;
 }
 
+void* check_malloc(const char * message, int k)
+{
+    void* p = malloc(k);
+    if (p == NULL)
+    {
+        write(1, message, strlen(message));
+        exit(1);
+    }
+    return p;
+}
+
 int find_char(char* s, int from, int to, char c)
 {
     int i = from;
@@ -52,7 +63,7 @@ int main(int argc, char* argv[])
 
     int k = atoi(argv[1]) + 1;
 
-    char* buffer = malloc(k);
+    char* buffer = check_malloc("malloc error\n", k);
     if (buffer == NULL)
     {
         char* message = "malloc error\n";
