@@ -3,86 +3,120 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-int find_char(char* s, int len, char c) {
-    int i = 0;
-    while (i < len && s[i] != 0) {
+int check(const char * message, int what)
+{
+    if (what < 0) 
+    {
+        perror(message);
+        _exit(1);
+    }
+    return what;
+}
+
+void* check_malloc(const char * message, int k)
+{
+    void* p = malloc(k);
+    if (p == NULL)
+    {
+        write(1, message, strlen(message));
+        exit(1);
+    }
+    return p;
+}
+
+int find_char(char* s, int from, int to, char c)
+{
+    int i = from;
+    while (i < to && s[i] != 0)
+    {
         if (s[i] == c) return i;
         ++i;
     }
     return -1;
 }
 
-void write_string_twice(char* s, int len) {
+void write_twice(char* s, int len)
+{
     char endl = '\n';
-    write(1, s, len);
-    write(1, &endl, 1);
-    write(1, s, len);
-    write(1, &endl, 1);
+    int i;
+    for (i = 0; i < 2; ++i)
+    {
+        int pos = 0;
+        while (pos < len)
+        {
+            pos += check("write", write(1, s + pos, len - pos));
+        }
+        write(1, &endl, 1);
+    }
 }
         
-int main(int argc, char* argv[]) {
+enum state {READ, SKIP};
+
+int main(int argc, char* argv[])
+{
     if (argc < 2)
     {
         char* message = "Usage: echo input | ./main <buffer size>\n";
         write(1, message, strlen(message));
-        return 0;
+        exit(1);
     }
 
     int k = atoi(argv[1]) + 1;
 
-    char* buffer = malloc(k);
+    char* buffer = check_malloc("malloc error\n", k);
+    if (buffer == NULL)
+    {
+        char* message = "malloc error\n";
+        write(1, message, strlen(message));
+        exit(1);
+    }
 
     int len = 0;
-    int count;
-    int eof_flag = 0;
-    while (1) {
-        // invariant: buffer contains "len" start chars of new (and maybe next) strings
+    int eof_found = 0;
+    enum state st = READ;
+    while (!eof_found)
+    {
+        int cnt = check("read", read(0, buffer + len, k - len));
+        if (cnt == 0)
+           eof_found = 1;
+        len += cnt;
 
-        // work with buffer[0..len - 1]
-        int ind_endl = find_char(buffer, len, '\n');
-        if (ind_endl != -1) { // buffer[0..len - 1] contain endl
-            write_string_twice(buffer, ind_endl);
-            if (ind_endl < len - 1) { // copy tail to begin (without endl)
-                memmove(buffer, buffer + ind_endl + 1, len - ind_endl - 1);
-                len = len - ind_endl - 1;
-            } else 
+        if (st == SKIP)
+        {
+            int pos = find_char(buffer, 0, len, '\n'); 
+            if (pos == -1)
             {
                 len = 0;
+                continue;
             }
-        } else // buffer[0..len - 1] don't contain endl
-        {
-            if (eof_flag && len > 0) {
-                write_string_twice(buffer, len);
-                break;
-            }
-            if (k == len) {
-                // skip tail
-                len = 0;
-                while (1) {
-                    count = read(0, buffer + len, k - len);
-                    if (k != len && count == 0) { // EOF
-                        eof_flag = 1;
-                        break;
-                    }
-                    len += count;
-                    ind_endl = find_char(buffer, len, '\n');
-                    if (ind_endl != -1) {
-                        memmove(buffer, buffer + ind_endl + 1, len - ind_endl - 1);
-                        len = len - ind_endl - 1;
-                        break;
-                    }
-                }
-            }
+            ++pos;
+            memmove(buffer, buffer + pos, len - pos);
+            len -= pos;
+            st = READ;
         }
 
-        if (eof_flag) {
-            break;
+        if (st == READ) {
+            int pos_l = 0;
+            int pos_r = find_char(buffer, pos_l, len, '\n');
+            while (pos_r != -1)
+            {
+                write_twice(buffer + pos_l, pos_r - pos_l);
+                pos_l = pos_r + 1;
+                pos_r = find_char(buffer, pos_l, len, '\n');
+            }
+    
+            memmove(buffer, buffer + pos_l, len - pos_l);
+            len -= pos_l;
+    
+            if (len == k) 
+            {
+                st = SKIP;
+                len = 0;
+            }
+    
+            if (eof_found && len > 0)
+                write_twice(buffer, len);
         }
-        count = read(0, buffer + len, k - len);
-        if (k != len && count == 0) { // EOF
-            eof_flag = 1;
-        }
-        len += count;
     }
 
     free(buffer);
