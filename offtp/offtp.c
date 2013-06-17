@@ -129,7 +129,7 @@ int main(void)
                 return 0;
             }
             write_all(new_fd, "ok\0", 3);
-            write_all(new_fd, buf_size, strlen(buf_size));
+            write_all(new_fd, buf_size, strlen(buf_size) + 1);
             
             while (true) {
                 int cnt = check("read err", read(f, buffer, BUFFER_SIZE));
